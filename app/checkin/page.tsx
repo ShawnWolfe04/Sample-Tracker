@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
 
-// Optional but recommended: define a type
 type Sample = {
   id: number;
   name: string;
@@ -17,29 +16,30 @@ type Sample = {
 export default function CheckInPage() {
   const [samples, setSamples] = useState<Sample[]>([]);
 
-useEffect(() => {
-  fetchSamples(); // initial load
+  useEffect(() => {
+    fetchSamples();
 
-  const channel = supabase
-    .channel("samples-changes")
-    .on(
-      "postgres_changes",
-      {
-        event: "*",
-        schema: "public",
-        table: "samples",
-      },
-      () => {
-        fetchSamples(); // refresh list after any database change
-      }
-    )
-    .subscribe();
+    // 🔥 Supabase realtime channel
+    const channel = supabase
+      .channel("samples-realtime")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "samples",
+        },
+        () => {
+          // Refresh whenever something in the table changes
+          fetchSamples();
+        }
+      )
+      .subscribe();
 
-  return () => {
-    supabase.removeChannel(channel);
-  };
-}, []);
-
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   const fetchSamples = async () => {
     const { data, error } = await supabase
@@ -48,11 +48,8 @@ useEffect(() => {
       .eq("status", "checked_out")
       .order("checked_out_at", { ascending: false });
 
-    if (error) {
-      console.error(error);
-    } else {
-      setSamples(data || []);
-    }
+    if (error) console.error(error);
+    else setSamples(data || []);
   };
 
   const handleCheckIn = async (id: number) => {
@@ -68,12 +65,15 @@ useEffect(() => {
       })
       .eq("id", id);
 
-    if (error) alert(error.message);
-    else {
-  setSamples((prev) => prev.filter((s) => s.id !== id));
-  fetchSamples(); // still good as a backup
-}
+    if (error) {
+      alert(error.message);
+      return;
+    }
 
+    // ⭐ INSTANT local removal (no waiting)
+    setSamples((prev) => prev.filter((s) => s.id !== id));
+
+    // Realtime will also refresh everyone else automatically
   };
 
   return (
