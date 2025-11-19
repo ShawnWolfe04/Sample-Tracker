@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
+import Link from "next/link"; // import link
 
 type Sample = {
   id: string;
@@ -23,24 +24,23 @@ export default function CheckInPage() {
   const [groups, setGroups] = useState<CustomerGroup[]>([]);
   const [openCustomer, setOpenCustomer] = useState<string | null>(null);
 
-useEffect(() => {
-  fetchGroups();
+  useEffect(() => {
+    fetchGroups();
 
-  const channel = supabase
-    .channel("samples-realtime")
-    .on(
-      "postgres_changes",
-      { event: "*", schema: "public", table: "samples" },
-      () => fetchGroups()
-    )
-    .subscribe();
+    const channel = supabase
+      .channel("samples-realtime")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "samples" },
+        () => fetchGroups()
+      )
+      .subscribe();
 
-  return () => {
-    // React cleanup must NOT be async
-    supabase.removeChannel(channel);
-  };
-}, []);
-
+    return () => {
+      // React cleanup must NOT be async
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   const fetchGroups = async () => {
     const { data, error } = await supabase
@@ -115,6 +115,15 @@ useEffect(() => {
 
   return (
     <div className="p-4 space-y-4">
+
+      {/* Link back to Check Out page */}
+      <Link
+        href="/checkout"
+        className="text-blue-600 underline mb-2 inline-block"
+      >
+        Go to Check Out Page
+      </Link>
+
       <h1 className="text-2xl font-bold">Check In Samples</h1>
 
       {groups.length === 0 && <p>No samples are currently checked out.</p>}
