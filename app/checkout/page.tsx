@@ -52,7 +52,7 @@ export default function CheckOutPage() {
     setSuggestions(newSuggestions);
   };
 
-  const handleSubmit = async (e: any) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     const { data: customer, error: custErr } = await supabase
