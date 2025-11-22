@@ -1,14 +1,14 @@
-/* Tailwind v4 requires this import */
+/* Tailwind v4 required imports */
 @import "tailwindcss/preflight";
 @import "tailwindcss/utilities";
 
-/* Light theme */
+/* Light Mode */
 :root {
   --background: #f6f6f6;
   --foreground: #111111;
 }
 
-/* Dark theme support */
+/* Dark mode (optional) */
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #121212;
@@ -22,7 +22,7 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-/* INPUTS ALWAYS VISIBLE */
+/* Always readable input text */
 input,
 select,
 textarea {
@@ -30,7 +30,7 @@ textarea {
   color: black !important;
 }
 
-/* AUTOCOMPLETE / SUGGESTIONS */
+/* Dropdown list styling */
 ul {
   background-color: white !important;
   color: black !important;
@@ -40,7 +40,7 @@ li:hover {
   background-color: #e5e5e5 !important;
 }
 
-/* BUTTONS (just ensure readable text) */
+/* Buttons: ensure readable text */
 button {
   color: white;
 }

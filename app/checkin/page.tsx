@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
-import Link from "next/link";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "../../lib/supabaseClient";
 
+// TYPES
 type Customer = {
   id: string;
   first_name: string;
@@ -20,7 +20,7 @@ type Sample = {
   customers: Customer;
 };
 
-type CustomerGroup = {
+type Group = {
   customer_id: string;
   first_name: string;
   last_name: string;
@@ -28,18 +28,17 @@ type CustomerGroup = {
 };
 
 export default function CheckInPage() {
-  const [groups, setGroups] = useState<CustomerGroup[]>([]);
-  const [openCustomer, setOpenCustomer] = useState<string | null>(null);
+  const [groups, setGroups] = useState<Group[]>([]);
+  const [open, setOpen] = useState<string | null>(null);
 
   const [viewBy, setViewBy] = useState<"customer" | "sample">("customer");
-  const [sortBy, setSortBy] = useState<"manufacturer" | "style_name" | "color_name">(
-    "manufacturer"
-  );
+  const [sortBy, setSortBy] =
+    useState<"manufacturer" | "style_name" | "color_name">("manufacturer");
 
   const [samplesList, setSamplesList] = useState<Sample[]>([]);
   const [search, setSearch] = useState("");
 
-  // ---------- FETCH DATA ----------
+  // FETCH
   const fetchData = useCallback(async () => {
     const { data, error } = await supabase
       .from("samples")
@@ -48,81 +47,80 @@ export default function CheckInPage() {
 
     if (error || !data) return;
 
-    if (viewBy === "customer") {
-      const grouped: Record<string, CustomerGroup> = {};
+    const rows = data as Sample[];
 
-      data.forEach((sample: Sample) => {
-        const c = sample.customers;
+    if (viewBy === "customer") {
+      const map: Record<string, Group> = {};
+
+      rows.forEach((s) => {
+        const c = s.customers;
         if (!c) return;
 
-        if (!grouped[c.id]) {
-          grouped[c.id] = {
+        if (!map[c.id]) {
+          map[c.id] = {
             customer_id: c.id,
             first_name: c.first_name,
             last_name: c.last_name,
             samples: [],
           };
         }
-
-        grouped[c.id].samples.push(sample);
+        map[c.id].samples.push(s);
       });
 
-      const sorted = Object.values(grouped).sort((a, b) =>
+      const sorted = Object.values(map).sort((a, b) =>
         a.last_name.localeCompare(b.last_name)
       );
 
       setGroups(sorted);
     } else {
       setSamplesList(
-        [...data].sort((a, b) =>
-          (a[sortBy] ?? "").localeCompare(b[sortBy] ?? "")
+        [...rows].sort((a, b) =>
+          (a[sortBy] || "").localeCompare(b[sortBy] || "")
         )
       );
     }
   }, [viewBy, sortBy]);
 
-  // ---------- REALTIME + INITIAL LOAD ----------
+  // LOAD + REALTIME — FIXED VERSION
   useEffect(() => {
-    // INITIAL LOAD — safe
-    Promise.resolve().then(fetchData);
+    // run fetch async but without returning Promise
+    setTimeout(() => {
+      void fetchData();
+    }, 0);
 
-    // SUBSCRIBE
     const channel = supabase
-      .channel("samples-realtime")
+      .channel("samples-updates")
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "samples" },
-        fetchData
+        () => void fetchData()
       )
       .subscribe();
 
-    // CLEANUP — MUST BE SYNC
+    // Cleanup MUST NOT return a Promise → FIX
     return () => {
-      supabase.removeChannel(channel); // Wrapped in sync function
+      void supabase.removeChannel(channel);
     };
   }, [fetchData]);
 
-  // ---------- SEARCH ----------
-  const query = search.trim().toLowerCase();
+  // SEARCH
+  const q = search.toLowerCase();
 
-  const filteredGroups =
-    viewBy === "customer"
-      ? groups.filter((g) => {
-          if (!query) return true;
+  const filteredGroups = groups.filter((g) => {
+    if (!q) return true;
 
-          const full = `${g.first_name} ${g.last_name}`.toLowerCase();
-          const reversed = `${g.last_name} ${g.first_name}`.toLowerCase();
+    const full = `${g.first_name} ${g.last_name}`.toLowerCase();
+    const rev = `${g.last_name} ${g.first_name}`.toLowerCase();
 
-          const nameMatch = full.includes(query) || reversed.includes(query);
+    const matchName = full.includes(q) || rev.includes(q);
+    const matchSample = g.samples.some((s) =>
+      [s.manufacturer, s.style_name, s.color_name]
+        .filter(Boolean)
+        .some((f) => f!.toLowerCase().includes(q))
+    );
 
-          const sampleMatch = g.samples.some((s) =>
-            [s.manufacturer, s.style_name, s.color_name]
-              .some((v) => v?.toLowerCase().includes(query))
-          );
-
-          return nameMatch || sampleMatch;
-        })
-      : groups;
+    return matchName || matchSample;
+  });
 
   const filteredSamples =
     viewBy === "sample"
@@ -133,12 +131,14 @@ export default function CheckInPage() {
             s.manufacturer,
             s.style_name,
             s.color_name,
-          ].some((v) => v?.toLowerCase().includes(query))
+          ]
+            .filter(Boolean)
+            .some((f) => f!.toLowerCase().includes(q))
         )
       : samplesList;
 
-  // ---------- CHECK-IN ----------
-  const checkInSample = async (id: string) => {
+  // ACTIONS
+  const checkInOne = async (id: string) => {
     const name = prompt("Who is checking this in?");
     if (!name) return;
 
@@ -151,10 +151,10 @@ export default function CheckInPage() {
       })
       .eq("id", id);
 
-    fetchData();
+    void fetchData();
   };
 
-  const checkInAll = async (customerId: string, sampleIds: string[]) => {
+  const checkInAll = async (cid: string, ids: string[]) => {
     const name = prompt("Who is checking all samples in?");
     if (!name) return;
 
@@ -165,37 +165,30 @@ export default function CheckInPage() {
         checked_in_by: name,
         checked_in_at: new Date().toISOString(),
       })
-      .in("id", sampleIds);
+      .in("id", ids);
 
-    fetchData();
+    void fetchData();
   };
 
+  // RENDER
   return (
-    <div className="min-h-screen flex justify-center">
-      <div className="w-full max-w-2xl p-4 space-y-6">
+    <div className="flex justify-center min-h-screen px-4">
+      <div className="w-full max-w-md space-y-6 py-6">
+        <h1 className="text-2xl font-bold text-center">Check In Samples</h1>
 
-        <h1 className="text-3xl font-bold text-center">Check In Samples</h1>
-
-        <div className="text-center">
-          <Link href="/checkout" className="text-blue-600 underline">
-            Go to Check Out Page
-          </Link>
-        </div>
-
-        {/* Search */}
         <input
-          className="border p-2 w-full rounded bg-white text-black shadow-sm"
-          placeholder="Search customers, samples, style, color..."
+          className="input w-full"
+          placeholder="Search customers or samples..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
 
-        {/* View toggle */}
+        {/* Toggle */}
         <div className="flex justify-between items-center">
           <div className="space-x-2">
             <button
               onClick={() => setViewBy("customer")}
-              className={`px-3 py-1 rounded shadow ${
+              className={`px-3 py-1 rounded ${
                 viewBy === "customer"
                   ? "bg-blue-600 text-white"
                   : "bg-gray-200 text-black"
@@ -206,7 +199,7 @@ export default function CheckInPage() {
 
             <button
               onClick={() => setViewBy("sample")}
-              className={`px-3 py-1 rounded shadow ${
+              className={`px-3 py-1 rounded ${
                 viewBy === "sample"
                   ? "bg-blue-600 text-white"
                   : "bg-gray-200 text-black"
@@ -218,13 +211,13 @@ export default function CheckInPage() {
 
           {viewBy === "sample" && (
             <select
-              className="border p-2 rounded bg-white text-black shadow-sm"
               value={sortBy}
               onChange={(e) =>
                 setSortBy(
                   e.target.value as "manufacturer" | "style_name" | "color_name"
                 )
               }
+              className="input w-36"
             >
               <option value="manufacturer">Manufacturer</option>
               <option value="style_name">Style Name</option>
@@ -236,38 +229,39 @@ export default function CheckInPage() {
         {/* CUSTOMER VIEW */}
         {viewBy === "customer" &&
           (filteredGroups.length === 0 ? (
-            <p>No samples are checked out.</p>
+            <p className="text-center text-gray-500">No samples are checked out.</p>
           ) : (
-            filteredGroups.map((group) => (
-              <div key={group.customer_id} className="border rounded-lg p-4 bg-white shadow">
-
+            filteredGroups.map((g) => (
+              <div key={g.customer_id} className="card">
                 <button
                   onClick={() =>
-                    setOpenCustomer(
-                      openCustomer === group.customer_id
-                        ? null
-                        : group.customer_id
-                    )
+                    setOpen(open === g.customer_id ? null : g.customer_id)
                   }
-                  className="w-full text-left text-lg font-semibold"
+                  className="w-full text-left font-semibold"
                 >
-                  {group.last_name}, {group.first_name}
+                  {g.last_name}, {g.first_name}
                 </button>
 
-                {openCustomer === group.customer_id && (
-                  <div className="mt-4 space-y-4">
-
-                    {group.samples.map((s) => (
-                      <div key={s.id} className="border rounded p-3 bg-gray-50">
-                        <p><strong>Manufacturer:</strong> {s.manufacturer}</p>
-                        <p><strong>Style:</strong> {s.style_name}</p>
-                        <p><strong>Color:</strong> {s.color_name}</p>
+                {open === g.customer_id && (
+                  <div className="mt-3 space-y-3">
+                    {g.samples.map((s) => (
+                      <div
+                        key={s.id}
+                        className="p-3 rounded border bg-gray-50 space-y-1"
+                      >
+                        <p><b>Manufacturer:</b> {s.manufacturer}</p>
+                        <p><b>Style:</b> {s.style_name}</p>
+                        <p><b>Color:</b> {s.color_name}</p>
+                        <p>
+                          <b>Checked Out:</b>{" "}
+                          {new Date(s.checked_out_at || "").toLocaleString()}
+                        </p>
 
                         <button
-                          onClick={() => checkInSample(s.id)}
-                          className="bg-green-600 text-white px-3 py-1 rounded mt-2"
+                          onClick={() => checkInOne(s.id)}
+                          className="btn-green mt-2"
                         >
-                          Check In Sample
+                          Check In
                         </button>
                       </div>
                     ))}
@@ -275,13 +269,13 @@ export default function CheckInPage() {
                     <button
                       onClick={() =>
                         checkInAll(
-                          group.customer_id,
-                          group.samples.map((s) => s.id)
+                          g.customer_id,
+                          g.samples.map((s) => s.id)
                         )
                       }
-                      className="bg-blue-700 text-white py-2 rounded w-full mt-4"
+                      className="btn-primary w-full"
                     >
-                      Check In ALL Samples
+                      Check In ALL
                     </button>
                   </div>
                 )}
@@ -292,20 +286,22 @@ export default function CheckInPage() {
         {/* SAMPLE VIEW */}
         {viewBy === "sample" &&
           (filteredSamples.length === 0 ? (
-            <p>No samples are checked out.</p>
+            <p className="text-center text-gray-500">No samples are checked out.</p>
           ) : (
             filteredSamples.map((s) => (
-              <div key={s.id} className="border rounded-lg p-4 bg-white shadow space-y-1">
-                <p><strong>Customer:</strong> {s.customers.first_name} {s.customers.last_name}</p>
-                <p><strong>Manufacturer:</strong> {s.manufacturer}</p>
-                <p><strong>Style:</strong> {s.style_name}</p>
-                <p><strong>Color:</strong> {s.color_name}</p>
+              <div key={s.id} className="card space-y-1">
+                <p>
+                  <b>Customer:</b> {s.customers.first_name} {s.customers.last_name}
+                </p>
+                <p><b>Manufacturer:</b> {s.manufacturer}</p>
+                <p><b>Style:</b> {s.style_name}</p>
+                <p><b>Color:</b> {s.color_name}</p>
 
                 <button
-                  onClick={() => checkInSample(s.id)}
-                  className="bg-green-600 text-white px-3 py-1 rounded mt-2"
+                  onClick={() => checkInOne(s.id)}
+                  className="btn-green mt-2"
                 >
-                  Check In Sample
+                  Check In
                 </button>
               </div>
             ))

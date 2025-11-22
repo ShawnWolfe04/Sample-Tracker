@@ -1,11 +1,20 @@
 "use client";
 
 import { useState } from "react";
-import type { FormEvent, ChangeEvent } from "react";
-import Link from "next/link";
 import { supabase } from "../../lib/supabaseClient";
+import Image from "next/image";
+import Link from "next/link";
 
-const associates = ["Ed", "Shawn", "Leroy", "Matt", "Chris", "Amy", "Chandra", "Josh"];
+const associates = [
+  "Ed",
+  "Shawn",
+  "Leroy",
+  "Matt",
+  "Chris",
+  "Amy",
+  "Chandra",
+  "Josh",
+];
 
 const popularManufacturers = [
   "Karndean",
@@ -31,10 +40,18 @@ type SampleInput = {
   color_name: string;
 };
 
+function formatPhone(input: string): string {
+  const cleaned = input.replace(/\D/g, "").slice(0, 10);
+  if (cleaned.length < 4) return cleaned;
+  if (cleaned.length < 7) return `(${cleaned.slice(0, 3)}) ${cleaned.slice(3)}`;
+  return `(${cleaned.slice(0, 3)}) ${cleaned.slice(3, 6)}-${cleaned.slice(6)}`;
+}
+
 export default function CheckOutPage() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [phone, setPhone] = useState("");
+  const [associate, setAssociate] = useState("");
 
   const [samples, setSamples] = useState<SampleInput[]>(
     Array.from({ length: 5 }, () => ({
@@ -44,58 +61,41 @@ export default function CheckOutPage() {
     }))
   );
 
-  const [associate, setAssociate] = useState("");
-
   const [suggestions, setSuggestions] = useState<string[][]>(
     Array.from({ length: 5 }, () => [])
   );
 
-  // --------------- Phone Auto-format (555-555-5555) ---------------
-  const handlePhoneChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const digits = e.target.value.replace(/\D/g, "").slice(0, 10);
-    let formatted = digits;
-
-    if (digits.length > 6) {
-      formatted = `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6)}`;
-    } else if (digits.length > 3) {
-      formatted = `${digits.slice(0, 3)}-${digits.slice(3)}`;
-    }
-
-    setPhone(formatted);
-  };
-
-  // --------------- Sample Input Handler ---------------
-  const handleSampleChange = (
+  const handleSampleChange = <K extends keyof SampleInput>(
     index: number,
-    field: "manufacturer" | "style_name" | "color_name",
-    value: string
+    field: K,
+    value: SampleInput[K]
   ) => {
     const updated = [...samples];
-    updated[index][field] = value;
+    updated[index] = { ...updated[index], [field]: value };
     setSamples(updated);
 
     if (field === "manufacturer") {
       const filtered = popularManufacturers.filter((m) =>
-        m.toLowerCase().startsWith(value.toLowerCase())
+        m.toLowerCase().startsWith(String(value).toLowerCase())
       );
 
-      const newList = [...suggestions];
-      newList[index] = filtered;
-      setSuggestions(newList);
+      const newSuggestions = [...suggestions];
+      newSuggestions[index] = filtered;
+      setSuggestions(newSuggestions);
     }
   };
 
-  const handleSelectSuggestion = (index: number, value: string) => {
+  const selectSuggestion = (index: number, value: string) => {
     const updated = [...samples];
     updated[index].manufacturer = value;
     setSamples(updated);
 
-    const newList = [...suggestions];
-    newList[index] = [];
-    setSuggestions(newList);
+    const newSuggestions = [...suggestions];
+    newSuggestions[index] = [];
+    setSuggestions(newSuggestions);
   };
 
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     const { data: customer, error: custErr } = await supabase
@@ -104,16 +104,22 @@ export default function CheckOutPage() {
       .select()
       .single();
 
-    if (custErr) return alert(custErr.message);
-    const customerId = customer.id;
+    if (custErr) {
+      alert(custErr.message);
+      return;
+    }
 
-    const filtered = samples.filter(
+    const filled = samples.filter(
       (s) => s.manufacturer || s.style_name || s.color_name
     );
-    if (filtered.length === 0) return alert("Please enter at least one sample.");
 
-    const rows = filtered.map((s) => ({
-      customer_id: customerId,
+    if (filled.length === 0) {
+      alert("Please enter at least one sample.");
+      return;
+    }
+
+    const rows = filled.map((s) => ({
+      customer_id: customer.id,
       manufacturer: s.manufacturer,
       style_name: s.style_name,
       color_name: s.color_name,
@@ -123,7 +129,10 @@ export default function CheckOutPage() {
     }));
 
     const { error: sampleErr } = await supabase.from("samples").insert(rows);
-    if (sampleErr) return alert(sampleErr.message);
+    if (sampleErr) {
+      alert(sampleErr.message);
+      return;
+    }
 
     alert("Samples checked out!");
 
@@ -142,106 +151,167 @@ export default function CheckOutPage() {
   };
 
   return (
-    <div className="min-h-screen flex justify-center">
-      <div className="w-full max-w-2xl p-4 space-y-6">
-        <h1 className="text-3xl font-bold text-center">Customer Check Out</h1>
-
-        <div className="text-center">
-          <Link href="/checkin" className="text-blue-600 underline">
-            Go to Check In Page
-          </Link>
+    <div className="min-h-screen flex flex-col items-center px-4 pb-16">
+      {/* HEADER: logo centered, links underneath */}
+      <header className="w-full border-b border-neutral-300 dark:border-neutral-800 mb-6">
+        <div className="max-w-xl mx-auto flex flex-col items-center gap-3 py-4">
+          <Image
+            src="https://gainesvillecarpetsplus.com/wp-content/uploads/2021/11/gnsvspls-768x250.webp"
+            width={220}
+            height={90}
+            alt="Logo"
+            className="rounded"
+          />
+          <nav className="flex gap-6 text-lg font-semibold">
+            <Link href="/checkin" className="hover:underline">
+              Check In
+            </Link>
+            <Link href="/checkout" className="hover:underline">
+              Check Out
+            </Link>
+          </nav>
         </div>
+      </header>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+      {/* MAIN CARD */}
+      <main className="w-full flex justify-center">
+        <div className="w-full max-w-xl bg-white dark:bg-neutral-900 shadow-lg rounded-xl p-6 space-y-8">
+          <h1 className="text-3xl font-bold text-center">
+            Check Out Samples
+          </h1>
 
-          {/* Customer Info */}
-          <div className="bg-white border rounded-lg p-4 shadow-sm">
-            <h2 className="font-bold mb-3 text-lg">Customer Info</h2>
+          <form onSubmit={handleSubmit} className="space-y-8">
+            {/* CUSTOMER INFO */}
+            <section className="space-y-4">
+              <h2 className="text-2xl fotext-3xl font-extrabold font-(--font-geist-mono) tracking-wident-semibold text-center">
+                Customer Info
+              </h2>
 
-            <input className="border p-2 w-full mb-2 rounded" placeholder="First Name"
-              value={firstName} onChange={(e) => setFirstName(e.target.value)} />
-
-            <input className="border p-2 w-full mb-2 rounded" placeholder="Last Name"
-              value={lastName} onChange={(e) => setLastName(e.target.value)} />
-
-            <input className="border p-2 w-full mb-2 rounded" placeholder="Phone Number"
-              value={phone} onChange={handlePhoneChange} />
-          </div>
-
-          {/* Associate */}
-          <div className="bg-white border rounded-lg p-4 shadow-sm">
-            <h2 className="font-bold mb-3 text-lg">Sales Associate</h2>
-
-            <select
-              className="border p-2 w-full rounded bg-white"
-              value={associate}
-              onChange={(e) => setAssociate(e.target.value)}
-              required
-            >
-              <option value="">Select Associate</option>
-              {associates.map((a) => (
-                <option key={a}>{a}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* Samples */}
-          <div className="bg-white border rounded-lg p-4 shadow-sm">
-            <h2 className="font-bold mb-3 text-lg">Samples (up to 5)</h2>
-
-            {samples.map((sample, index) => (
-              <div key={index} className="border rounded p-3 mb-4 bg-gray-50 relative shadow-sm">
-
-                {/* Manufacturer autocomplete */}
+              <div className="space-y-3">
                 <input
-                  className="border p-2 w-full mb-2 rounded bg-white"
-                  placeholder="Manufacturer"
-                  value={sample.manufacturer}
-                  onChange={(e) =>
-                    handleSampleChange(index, "manufacturer", e.target.value)
-                  }
+                  className="border p-2 rounded w-full"
+                  placeholder="First Name"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
                 />
-
-                {suggestions[index]?.length > 0 && (
-                  <ul className="absolute left-0 right-0 top-20 bg-white text-black border rounded shadow-lg z-20 max-h-40 overflow-auto">
-                    {suggestions[index].map((option) => (
-                      <li
-                        key={option}
-                        className="p-2 hover:bg-gray-100 cursor-pointer"
-                        onClick={() => handleSelectSuggestion(index, option)}
-                      >
-                        {option}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-
                 <input
-                  className="border p-2 w-full mb-2 rounded bg-white"
-                  placeholder="Style Name"
-                  value={sample.style_name}
-                  onChange={(e) =>
-                    handleSampleChange(index, "style_name", e.target.value)
-                  }
+                  className="border p-2 rounded w-full"
+                  placeholder="Last Name"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
                 />
-
                 <input
-                  className="border p-2 w-full rounded bg-white"
-                  placeholder="Color Name"
-                  value={sample.color_name}
-                  onChange={(e) =>
-                    handleSampleChange(index, "color_name", e.target.value)
-                  }
+                  className="border p-2 rounded w-full"
+                  placeholder="Phone Number"
+                  value={phone}
+                  onChange={(e) => setPhone(formatPhone(e.target.value))}
+                  maxLength={14}
                 />
               </div>
-            ))}
-          </div>
+            </section>
 
-          <button className="bg-blue-600 text-white p-3 rounded w-full text-lg font-semibold shadow">
-            Check Out Samples
-          </button>
-        </form>
-      </div>
+            {/* SALES ASSOCIATE */}
+            <section className="space-y-3">
+              <h2 className="text-2text-3xl font-extrabold font-(--font-geist-mono) text-center tracking-widexl font-semibold">
+                Sales Associate
+              </h2>
+
+              <div className="flex justify-center">
+                <select
+                  className="border p-2 rounded w-full max-w-xs"
+                  value={associate}
+                  onChange={(e) => setAssociate(e.target.value)}
+                  required
+                >
+                  <option value="">Select Associate</option>
+                  {associates.map((a) => (
+                    <option key={a}>{a}</option>
+                  ))}
+                </select>
+              </div>
+            </section>
+
+            {/* SAMPLES */}
+            <section className="space-y-4">
+              <h2 className="text-text-3xl font-extrabold font-(--font-geist-mono) text-center tracking-wide2xl font-semibold">
+                Samples (up to 5)
+              </h2>
+
+              {samples.map((sample, i) => (
+                <div
+                  key={i}
+                  className="border rounded-lg bg-neutral-50 dark:bg-neutral-800 p-4 space-y-3"
+                >
+                  <p className="font-semibold mb-1">Sample {i + 1}</p>
+
+                  {/* Manufacturer with suggestions */}
+                  <div className="relative">
+                    <input
+                      className="border p-2 rounded w-full"
+                      placeholder="Manufacturer"
+                      value={sample.manufacturer}
+                      onChange={(e) =>
+                        handleSampleChange(i, "manufacturer", e.target.value)
+                      }
+                    />
+
+                    {suggestions[i].length > 0 && (
+                      <ul className="absolute left-0 right-0 bg-white border rounded shadow max-h-40 overflow-auto z-20">
+                        {suggestions[i].map((option) => (
+                          <li
+                            key={option}
+                            className="p-2 hover:bg-gray-200 cursor-pointer"
+                            onClick={() => selectSuggestion(i, option)}
+                          >
+                            {option}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+
+                  <input
+                    className="border p-2 rounded w-full"
+                    placeholder="Style Name"
+                    value={sample.style_name}
+                    onChange={(e) =>
+                      handleSampleChange(i, "style_name", e.target.value)
+                    }
+                  />
+
+                  <input
+                    className="border p-2 rounded w-full"
+                    placeholder="Color Name"
+                    value={sample.color_name}
+                    onChange={(e) =>
+                      handleSampleChange(i, "color_name", e.target.value)
+                    }
+                  />
+                </div>
+              ))}
+            </section>
+
+            <button
+  className="
+    bg-blue-600 
+    text-white 
+    py-4 
+    rounded-4xl 
+    w-full 
+    text-2xl 
+    font-bold 
+    tracking-wide 
+    shadow-md 
+    hover:bg-blue-700 
+    hover:shadow-lg 
+    transition
+  "
+>
+  Check Out Samples
+</button>
+          </form>
+        </div>
+      </main>
     </div>
   );
 }
