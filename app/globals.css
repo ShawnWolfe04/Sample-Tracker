@@ -1,6 +1,5 @@
-/* Tailwind v4 required imports */
-@import "tailwindcss/preflight";
-@import "tailwindcss/utilities";
+/* app/globals.css */
+@import "tailwindcss";
 
 /* Light Mode */
 :root {
@@ -42,5 +41,5 @@ li:hover {
 
 /* Buttons: ensure readable text */
 button {
-  color: white;
+  color: inherit;
 }

@@ -61,6 +61,7 @@ export default function CheckOutPage() {
     }))
   );
 
+  // suggestions[index] = array of manufacturer suggestions for that sample
   const [suggestions, setSuggestions] = useState<string[][]>(
     Array.from({ length: 5 }, () => [])
   );
@@ -74,13 +75,21 @@ export default function CheckOutPage() {
     updated[index] = { ...updated[index], [field]: value };
     setSamples(updated);
 
+    // Only manage suggestions when editing manufacturer
     if (field === "manufacturer") {
-      const filtered = popularManufacturers.filter((m) =>
-        m.toLowerCase().startsWith(String(value).toLowerCase())
-      );
-
+      const text = String(value).trim();
       const newSuggestions = [...suggestions];
-      newSuggestions[index] = filtered;
+
+      if (!text) {
+        // If user cleared the field, hide suggestions
+        newSuggestions[index] = [];
+      } else {
+        const filtered = popularManufacturers.filter((m) =>
+          m.toLowerCase().startsWith(text.toLowerCase())
+        );
+        newSuggestions[index] = filtered;
+      }
+
       setSuggestions(newSuggestions);
     }
   };
@@ -183,7 +192,7 @@ export default function CheckOutPage() {
           <form onSubmit={handleSubmit} className="space-y-8">
             {/* CUSTOMER INFO */}
             <section className="space-y-4">
-              <h2 className="text-2xl fotext-3xl font-extrabold font-(--font-geist-mono) tracking-wident-semibold text-center">
+              <h2 className="text-2xl md:text-3xl font-extrabold text-center tracking-wide">
                 Customer Info
               </h2>
 
@@ -212,7 +221,7 @@ export default function CheckOutPage() {
 
             {/* SALES ASSOCIATE */}
             <section className="space-y-3">
-              <h2 className="text-2text-3xl font-extrabold font-(--font-geist-mono) text-center tracking-widexl font-semibold">
+              <h2 className="text-2xl md:text-3xl font-extrabold text-center tracking-wide">
                 Sales Associate
               </h2>
 
@@ -233,7 +242,7 @@ export default function CheckOutPage() {
 
             {/* SAMPLES */}
             <section className="space-y-4">
-              <h2 className="text-text-3xl font-extrabold font-(--font-geist-mono) text-center tracking-wide2xl font-semibold">
+              <h2 className="text-2xl md:text-3xl font-extrabold text-center tracking-wide">
                 Samples (up to 5)
               </h2>
 
@@ -250,18 +259,33 @@ export default function CheckOutPage() {
                       className="border p-2 rounded w-full"
                       placeholder="Manufacturer"
                       value={sample.manufacturer}
+                      autoComplete="off"
                       onChange={(e) =>
                         handleSampleChange(i, "manufacturer", e.target.value)
                       }
+                      onBlur={() => {
+                        // Small delay so a click on a suggestion still works
+                        setTimeout(() => {
+                          setSuggestions((prev) => {
+                            const copy = [...prev];
+                            copy[i] = [];
+                            return copy;
+                          });
+                        }, 150);
+                      }}
                     />
 
-                    {suggestions[i].length > 0 && (
+                    {suggestions[i] && suggestions[i].length > 0 && (
                       <ul className="absolute left-0 right-0 bg-white border rounded shadow max-h-40 overflow-auto z-20">
                         {suggestions[i].map((option) => (
                           <li
                             key={option}
                             className="p-2 hover:bg-gray-200 cursor-pointer"
-                            onClick={() => selectSuggestion(i, option)}
+                            onMouseDown={(e) => {
+                              // prevent input blur from firing before click
+                              e.preventDefault();
+                              selectSuggestion(i, option);
+                            }}
                           >
                             {option}
                           </li>
@@ -292,23 +316,24 @@ export default function CheckOutPage() {
             </section>
 
             <button
-  className="
-    bg-blue-600 
-    text-white 
-    py-4 
-    rounded-4xl 
-    w-full 
-    text-2xl 
-    font-bold 
-    tracking-wide 
-    shadow-md 
-    hover:bg-blue-700 
-    hover:shadow-lg 
-    transition
-  "
->
-  Check Out Samples
-</button>
+              type="submit"
+              className="
+                bg-blue-600 
+                text-white 
+                py-4 
+                rounded-3xl 
+                w-full 
+                text-2xl 
+                font-bold 
+                tracking-wide 
+                shadow-md 
+                hover:bg-blue-700 
+                hover:shadow-lg 
+                transition
+              "
+            >
+              Check Out Samples
+            </button>
           </form>
         </div>
       </main>
