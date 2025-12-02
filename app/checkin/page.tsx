@@ -32,7 +32,7 @@ type Sample = {
   color_name: string;
   checked_out_by: string | null;
   checked_out_at: string | null;
-  checked_in_by?: string | null; // still stored, just not shown
+  checked_in_by?: string | null;
   checked_in_at?: string | null;
   customers: Customer;
 };
@@ -77,7 +77,9 @@ export default function CheckInPage() {
   });
 
   // EDITING STATE – CUSTOMERS
-  const [editingCustomerId, setEditingCustomerId] = useState<string | null>(null);
+  const [editingCustomerId, setEditingCustomerId] = useState<string | null>(
+    null
+  );
   const [editingCustomerValues, setEditingCustomerValues] = useState<{
     first_name: string;
     last_name: string;
@@ -318,9 +320,9 @@ export default function CheckInPage() {
   // RENDER
   return (
     <div className="min-h-screen flex flex-col items-center px-4 pb-16">
-      {/* HEADER: logo + nav (same style as checkout) */}
+      {/* HEADER: logo + nav */}
       <header className="w-full border-b border-neutral-300 dark:border-neutral-800 mb-6">
-        <div className="max-w-xl mx-auto flex flex-col items-center gap-3 py-4">
+        <div className="max-w-4xl mx-auto flex flex-col items-center gap-3 py-4">
           <Image
             src="https://gainesvillecarpetsplus.com/wp-content/uploads/2021/11/gnsvspls-768x250.webp"
             width={220}
@@ -347,12 +349,14 @@ export default function CheckInPage() {
 
       {/* MAIN CONTENT */}
       <main className="w-full flex justify-center">
-        <div className="w-full max-w-md space-y-6 py-6">
-          <h1 className="text-2xl font-bold text-center">Check In Samples</h1>
+        <div className="w-full max-w-xl md:max-w-2xl space-y-6 py-6">
+          <h1 className="text-2xl md:text-3xl font-bold text-center">
+            Check In Samples
+          </h1>
 
           {/* SEARCH */}
           <input
-            className="input w-full bg-white text-black dark:bg-neutral-900 dark:text-white border border-gray-300 dark:border-neutral-700 rounded px-3 py-2"
+            className="w-full bg-white text-black dark:bg-neutral-900 dark:text-white border border-gray-300 dark:border-neutral-700 rounded px-3 py-2"
             placeholder="Search customers, samples, or associates..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -360,7 +364,7 @@ export default function CheckInPage() {
 
           {/* TOGGLE + SORT / ASSOCIATE SELECT */}
           <div className="flex flex-col gap-3">
-            <div className="flex justify-between items-center">
+            <div className="flex flex-wrap justify-between items-center gap-3">
               <div className="space-x-2">
                 <button
                   onClick={() => setViewBy("customer")}
@@ -408,7 +412,7 @@ export default function CheckInPage() {
                         | "color_name"
                     )
                   }
-                  className="input w-36 bg-white text-black dark:bg-neutral-900 dark:text-white border border-gray-300 dark:border-neutral-700 rounded px-2 py-1"
+                  className="w-36 bg-white text-black dark:bg-neutral-900 dark:text-white border border-gray-300 dark:border-neutral-700 rounded px-2 py-1"
                 >
                   <option value="manufacturer">Manufacturer</option>
                   <option value="style_name">Style Name</option>
@@ -447,7 +451,7 @@ export default function CheckInPage() {
               filteredGroups.map((g) => (
                 <div
                   key={g.customer_id}
-                  className="card bg-white text-black dark:bg-neutral-900 dark:text-white border border-gray-200 dark:border-neutral-700 rounded-lg p-4 space-y-3"
+                  className="bg-white text-black dark:bg-neutral-900 dark:text-white border border-gray-200 dark:border-neutral-700 rounded-lg p-4 space-y-3"
                 >
                   {/* Customer header row */}
                   <button
@@ -464,9 +468,9 @@ export default function CheckInPage() {
                       {/* EDIT CUSTOMER INFO */}
                       {editingCustomerId === g.customer_id ? (
                         <div className="space-y-2">
-                          <div className="flex gap-2">
+                          <div className="flex flex-col sm:flex-row gap-2">
                             <input
-                              className="input flex-1 bg-white text-black dark:bg-neutral-900 dark:text-white border border-gray-300 dark:border-neutral-700 rounded px-2 py-1"
+                              className="flex-1 bg-white text-black dark:bg-neutral-900 dark:text-white border border-gray-300 dark:border-neutral-700 rounded px-2 py-1"
                               placeholder="First name"
                               value={editingCustomerValues.first_name}
                               onChange={(e) =>
@@ -477,7 +481,7 @@ export default function CheckInPage() {
                               }
                             />
                             <input
-                              className="input flex-1 bg-white text-black dark:bg-neutral-900 dark:text-white border border-gray-300 dark:border-neutral-700 rounded px-2 py-1"
+                              className="flex-1 bg-white text-black dark:bg-neutral-900 dark:text-white border border-gray-300 dark:border-neutral-700 rounded px-2 py-1"
                               placeholder="Last name"
                               value={editingCustomerValues.last_name}
                               onChange={(e) =>
@@ -488,10 +492,10 @@ export default function CheckInPage() {
                               }
                             />
                           </div>
-                          <div className="flex gap-2">
+                          <div className="flex flex-col sm:flex-row gap-2">
                             <button
                               onClick={() => saveCustomerEdit(g.customer_id)}
-                              className="btn-primary flex-1 text-white bg-blue-600 hover:bg-blue-700 rounded px-3 py-2"
+                              className="flex-1 text-white bg-blue-600 hover:bg-blue-700 rounded px-3 py-2"
                             >
                               Save Customer
                             </button>
@@ -523,7 +527,7 @@ export default function CheckInPage() {
                           {editingSampleId === s.id ? (
                             <>
                               <input
-                                className="input w-full bg-white text-black dark:bg-neutral-900 dark:text-white border border-gray-300 dark:border-neutral-700 rounded px-2 py-1"
+                                className="w-full bg-white text-black dark:bg-neutral-900 dark:text-white border border-gray-300 dark:border-neutral-700 rounded px-2 py-1"
                                 placeholder="Manufacturer"
                                 value={editingSampleValues.manufacturer}
                                 onChange={(e) =>
@@ -534,7 +538,7 @@ export default function CheckInPage() {
                                 }
                               />
                               <input
-                                className="input w-full bg-white text-black dark:bg-neutral-900 dark:text-white border border-gray-300 dark:border-neutral-700 rounded px-2 py-1"
+                                className="w-full bg-white text-black dark:bg-neutral-900 dark:text-white border border-gray-300 dark:border-neutral-700 rounded px-2 py-1"
                                 placeholder="Style Name"
                                 value={editingSampleValues.style_name}
                                 onChange={(e) =>
@@ -545,7 +549,7 @@ export default function CheckInPage() {
                                 }
                               />
                               <input
-                                className="input w-full bg-white text-black dark:bg-neutral-900 dark:text-white border border-gray-300 dark:border-neutral-700 rounded px-2 py-1"
+                                className="w-full bg-white text-black dark:bg-neutral-900 dark:text-white border border-gray-300 dark:border-neutral-700 rounded px-2 py-1"
                                 placeholder="Color Name"
                                 value={editingSampleValues.color_name}
                                 onChange={(e) =>
@@ -556,10 +560,10 @@ export default function CheckInPage() {
                                 }
                               />
 
-                              <div className="flex gap-2 mt-2">
+                              <div className="flex flex-col sm:flex-row gap-2 mt-2">
                                 <button
                                   onClick={() => saveSampleEdit(s.id)}
-                                  className="btn-primary flex-1 text-white bg-blue-600 hover:bg-blue-700 rounded px-3 py-2"
+                                  className="flex-1 text-white bg-blue-600 hover:bg-blue-700 rounded px-3 py-2"
                                 >
                                   Save Sample
                                 </button>
@@ -593,7 +597,7 @@ export default function CheckInPage() {
                                 {s.checked_out_by || "Unknown"}
                               </p>
 
-                              <div className="flex gap-2 mt-2">
+                              <div className="flex flex-col sm:flex-row gap-2 mt-2">
                                 <button
                                   onClick={() => startEditSample(s)}
                                   className="text-sm rounded px-3 py-2 border border-gray-300 dark:border-neutral-600 bg-gray-100 text-gray-800 dark:bg-neutral-800 dark:text-gray-100"
@@ -602,7 +606,7 @@ export default function CheckInPage() {
                                 </button>
                                 <button
                                   onClick={() => checkInOne(s.id)}
-                                  className="btn-green flex-1 text-white bg-green-600 hover:bg-green-700 rounded px-3 py-2"
+                                  className="flex-1 text-white bg-green-600 hover:bg-green-700 rounded px-3 py-2"
                                 >
                                   Check In
                                 </button>
@@ -613,10 +617,8 @@ export default function CheckInPage() {
                       ))}
 
                       <button
-                        onClick={() =>
-                          checkInAll(g.samples.map((s) => s.id))
-                        }
-                        className="btn-primary w-full mt-2 text-white bg-blue-600 hover:bg-blue-700 rounded px-3 py-2"
+                        onClick={() => checkInAll(g.samples.map((s) => s.id))}
+                        className="w-full mt-2 text-white bg-blue-600 hover:bg-blue-700 rounded px-3 py-2"
                       >
                         Check In ALL
                       </button>
@@ -636,7 +638,7 @@ export default function CheckInPage() {
               filteredSamples.map((s) => (
                 <div
                   key={s.id}
-                  className="card bg-white text-black dark:bg-neutral-900 dark:text-white border border-gray-200 dark:border-neutral-700 rounded-lg p-4 space-y-2"
+                  className="bg-white text-black dark:bg-neutral-900 dark:text-white border border-gray-200 dark:border-neutral-700 rounded-lg p-4 space-y-2"
                 >
                   <p>
                     <b>Customer:</b> {s.customers.first_name}{" "}
@@ -657,7 +659,7 @@ export default function CheckInPage() {
 
                   <button
                     onClick={() => checkInOne(s.id)}
-                    className="btn-green mt-2 w-full text-white bg-green-600 hover:bg-green-700 rounded px-3 py-2"
+                    className="mt-2 w-full text-white bg-green-600 hover:bg-green-700 rounded px-3 py-2"
                   >
                     Check In
                   </button>
@@ -679,7 +681,7 @@ export default function CheckInPage() {
               associateGroups.map((g) => (
                 <div
                   key={g.customer_id}
-                  className="card bg-white text-black dark:bg-neutral-900 dark:text-white border border-gray-200 dark:border-neutral-700 rounded-lg p-4 space-y-3"
+                  className="bg-white text-black dark:bg-neutral-900 dark:text-white border border-gray-200 dark:border-neutral-700 rounded-lg p-4 space-y-3"
                 >
                   <button
                     onClick={() =>
@@ -692,7 +694,6 @@ export default function CheckInPage() {
 
                   {open === g.customer_id && (
                     <div className="mt-2 space-y-4">
-                      {/* Reuse the same sample UI but only associate-filtered samples */}
                       {g.samples.map((s) => (
                         <div
                           key={s.id}
@@ -718,7 +719,7 @@ export default function CheckInPage() {
                             {s.checked_out_by || "Unknown"}
                           </p>
 
-                          <div className="flex gap-2 mt-2">
+                          <div className="flex flex-col sm:flex-row gap-2 mt-2">
                             <button
                               onClick={() => startEditSample(s)}
                               className="text-sm rounded px-3 py-2 border border-gray-300 dark:border-neutral-600 bg-gray-100 text-gray-800 dark:bg-neutral-800 dark:text-gray-100"
@@ -727,7 +728,7 @@ export default function CheckInPage() {
                             </button>
                             <button
                               onClick={() => checkInOne(s.id)}
-                              className="btn-green flex-1 text-white bg-green-600 hover:bg-green-700 rounded px-3 py-2"
+                              className="flex-1 text-white bg-green-600 hover:bg-green-700 rounded px-3 py-2"
                             >
                               Check In
                             </button>
@@ -737,7 +738,7 @@ export default function CheckInPage() {
 
                       <button
                         onClick={() => checkInAll(g.samples.map((s) => s.id))}
-                        className="btn-primary w-full mt-2 text-white bg-blue-600 hover:bg-blue-700 rounded px-3 py-2"
+                        className="w-full mt-2 text-white bg-blue-600 hover:bg-blue-700 rounded px-3 py-2"
                       >
                         Check In ALL
                       </button>

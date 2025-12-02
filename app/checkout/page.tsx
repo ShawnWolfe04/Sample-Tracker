@@ -14,7 +14,7 @@ const associates = [
   "Amy",
   "Chandra",
   "Josh",
-  "Ben "
+  "Ben",
 ];
 
 const popularManufacturers = [
@@ -53,7 +53,7 @@ type SampleInput = {
   color_name: string;
   category: string;
   otherCategory: string;
-  quantity: string; // keep as string for the input, convert to number on submit
+  quantity: string;
 };
 
 function createEmptySample(): SampleInput {
@@ -83,8 +83,6 @@ function isSampleFilled(sample: SampleInput): boolean {
         sample.color_name.trim()
     );
   }
-
-  // quick
   return Boolean(
     sample.category.trim() ||
       sample.otherCategory.trim() ||
@@ -154,18 +152,15 @@ export default function CheckOutPage() {
       updated[index] = {
         ...updated[index],
         mode,
-        // when switching modes, we do NOT clear anything,
-        // so users can switch back and forth without losing data
       };
       return updated;
     });
 
-    // if switching away from detailed, hide suggestions for that row
     if (mode === "quick") {
       setSuggestions((prev) => {
-        const newSuggestions = [...prev];
-        newSuggestions[index] = [];
-        return newSuggestions;
+        const next = [...prev];
+        next[index] = [];
+        return next;
       });
     }
   };
@@ -213,7 +208,6 @@ export default function CheckOutPage() {
         };
       }
 
-      // quick
       const isOther = s.category === "Other";
       const quantityValue =
         s.quantity.trim().length > 0 ? Number(s.quantity) : null;
@@ -253,7 +247,7 @@ export default function CheckOutPage() {
     <div className="min-h-screen flex flex-col items-center px-4 pb-16">
       {/* HEADER: logo centered, links underneath */}
       <header className="w-full border-b border-neutral-300 dark:border-neutral-800 mb-6">
-        <div className="max-w-xl mx-auto flex flex-col items-center gap-3 py-4">
+        <div className="max-w-4xl mx-auto flex flex-col items-center gap-3 py-4">
           <Image
             src="https://gainesvillecarpetsplus.com/wp-content/uploads/2021/11/gnsvspls-768x250.webp"
             width={220}
@@ -280,13 +274,15 @@ export default function CheckOutPage() {
 
       {/* MAIN CARD */}
       <main className="w-full flex justify-center">
-        <div className="w-full max-w-xl bg-white dark:bg-neutral-900 shadow-lg rounded-xl p-6 space-y-8">
-          <h1 className="text-3xl font-bold text-center">Check Out Samples</h1>
+        <div className="w-full max-w-xl md:max-w-2xl bg-white dark:bg-neutral-900 shadow-lg rounded-xl p-6 md:p-8 space-y-8 md:space-y-10">
+          <h1 className="text-3xl md:text-4xl font-bold text-center">
+            Check Out Samples
+          </h1>
 
-          <form onSubmit={handleSubmit} className="space-y-8">
+          <form onSubmit={handleSubmit} className="space-y-8 md:space-y-10">
             {/* CUSTOMER INFO */}
             <section className="space-y-4">
-              <h2 className="text-2xl font-extrabold text-center tracking-wide">
+              <h2 className="text-2xl md:text-3xl font-extrabold text-center tracking-wide">
                 Customer Info
               </h2>
 
@@ -315,7 +311,7 @@ export default function CheckOutPage() {
 
             {/* SALES ASSOCIATE */}
             <section className="space-y-3">
-              <h2 className="text-2xl font-extrabold text-center tracking-wide">
+              <h2 className="text-2xl md:text-3xl font-extrabold text-center tracking-wide">
                 Sales Associate
               </h2>
 
@@ -336,7 +332,7 @@ export default function CheckOutPage() {
 
             {/* SAMPLES */}
             <section className="space-y-4">
-              <h2 className="text-2xl font-extrabold text-center tracking-wide">
+              <h2 className="text-2xl md:text-3xl font-extrabold text-center tracking-wide">
                 Samples
               </h2>
 
@@ -377,7 +373,6 @@ export default function CheckOutPage() {
                   {/* Detailed mode fields */}
                   {sample.mode === "detailed" && (
                     <>
-                      {/* Manufacturer with suggestions */}
                       <div className="relative">
                         <input
                           className="border p-2 rounded w-full bg-white text-black dark:bg-neutral-900 dark:text-white"
@@ -391,7 +386,6 @@ export default function CheckOutPage() {
                             )
                           }
                           onBlur={() => {
-                            // allow click on suggestion before closing
                             setTimeout(() => {
                               setSuggestions((prev) => {
                                 const next = [...prev];
